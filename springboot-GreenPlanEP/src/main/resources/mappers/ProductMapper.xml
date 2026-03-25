@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 必须对应你的 Mapper 接口路径 -->
+<mapper namespace="cn.edu.hdu.mapper.ProductMapper">
+
+    <!-- 定义结果映射 (ResultMap) -->
+    <!-- 如果开启了 map-underscore-to-camel-case，其实可以简化，但写出来更明确 -->
+    <resultMap id="BaseResultMap" type="cn.edu.hdu.dto.ProductDTO">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="price" property="price" />
+        <result column="category" property="category" />
+        <result column="stock" property="stock" />
+        <result column="difficulty" property="difficulty" />
+        <result column="image_url" property="imageUrl" />
+        <result column="short_description" property="shortDescription" />
+        <result column="detail_description" property="detailDescription" />
+        <result column="planting_months" property="plantingMonths" />
+        <result column="suitable_regions" property="suitableRegions" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 插入操作 (处理自增主键) -->
+    <insert id="insert" parameterType="cn.edu.hdu.dto.ProductDTO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO products (name, price, category, stock, difficulty, image_url, short_description, detail_description, create_time)
+        VALUES (#{name}, #{price}, #{category}, #{stock}, #{difficulty}, #{imageUrl}, #{shortDescription}, #{detailDescription}, #{createTime})
+    </insert>
+
+    <!-- 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM products
+    </select>
+
+    <!-- 你的分页查询 SQL 应该写在这里 -->
+    <select id="selectProductsByCondition" resultMap="BaseResultMap">
+        SELECT * FROM products
+        <where>
+            <!-- 1. 关键词搜索 (名称或描述) -->
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR short_description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <!-- 2. 分类筛选 -->
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <!-- 3. 种植月份筛选 -->
+            <!-- 逻辑：如果前端传了 "3月"，Service层会转为 "3"，这里用 FIND_IN_SET 匹配 "3,4,5" 中的 "3" -->
+            <if test="month != null and month != ''">
+                AND FIND_IN_SET(#{month}, planting_months)
+            </if>
+            <!-- 4. 种植地区筛选 -->
+            <if test="region != null and region != ''">
+                AND FIND_IN_SET(#{region}, suitable_regions)
+            </if>
+        </where>
+        ORDER BY id DESC
+        <!-- LIMIT 由 PageHelper 插件自动添加，这里不用写 -->
+    </select>
+
+</mapper>
