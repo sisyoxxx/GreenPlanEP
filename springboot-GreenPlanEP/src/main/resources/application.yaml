@@ -10,14 +10,21 @@ spring:
       resources:
         static-locations: file:./uploads/,classpath:/static/
 
-## 以下为MyBatis相关的配置项
-mybatis:
+## 以下为MyBatis-Plus相关的配置项
+mybatis-plus:
   mapper-locations: classpath:/mappers/*.xml #指定XML⽂件的位置
   type-aliases-package: cn.edu.hdu.pojo
+  global-config:
+    db-config:
+      id-type: auto  # 全局默认主键策略：数据库自增 (对应 @TableId(type = IdType.AUTO))
+      logic-delete-field: deleted #  逻辑删除字段名，如果没用到可以删掉
+      logic-delete-value: 1       #  逻辑删除值
+      logic-not-delete-value: 0   #  逻辑未删除值
   configuration:
     map-underscore-to-camel-case: true
     auto-mapping-behavior: full
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    cache-enabled: false
 
 app:
   jwt:

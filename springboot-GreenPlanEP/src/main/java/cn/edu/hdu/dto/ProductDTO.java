@@ -23,26 +23,38 @@ public class ProductDTO {
     private String detailDescription;
     private LocalDateTime createTime;
 
-    //种植月份和地区方法
     private List<String> plantingMonths;
+
+    // 兼容 List<String>（来自实体类）
+    public void setPlantingMonths(List<String> months) {
+        this.plantingMonths = months;
+    }
+
+    // 兼容 String（来自数据库原始字符串）
     public void setPlantingMonths(String dbValue) {
         this.plantingMonths = new ArrayList<>();
         if (dbValue != null && !dbValue.isEmpty()) {
-            // "3,4,5" -> ["3月", "4月", "5月"] (根据需求加"月"字)
             Arrays.stream(dbValue.split(","))
                     .forEach(m -> this.plantingMonths.add(m + "月"));
         }
     }
 
     private List<String> suitableRegions;
+
+    // 兼容 List<String>（来自实体类）
+    public void setSuitableRegions(List<String> regions) {
+        this.suitableRegions = regions;
+    }
+
+    // 兼容 String（来自数据库原始字符串）
     public void setSuitableRegions(String dbValue) {
         if (dbValue != null && !dbValue.trim().isEmpty()) {
             this.suitableRegions = Arrays.stream(dbValue.split(","))
-                    .map(String::trim)          // 去除每个元素前后的空格
-                    .filter(s -> !s.isEmpty())  // 过滤掉空字符串（防止 ",," 的情况）
-                    .collect(Collectors.toCollection(ArrayList::new)); // 收集到 ArrayList
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toCollection(ArrayList::new));
         } else {
-            this.suitableRegions = new ArrayList<>(); // 防止 null，给个空列表
+            this.suitableRegions = new ArrayList<>();
         }
     }
 }

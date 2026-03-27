@@ -4,6 +4,8 @@ package cn.edu.hdu.controller;
 import cn.edu.hdu.pojo.User;
 import cn.edu.hdu.service.UserService;
 import cn.edu.hdu.util.JwtUtil;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 认证控制器 (Authentication Controller)
+
+ * 如果未来需要将认证逻辑独立出来，请取消下方登录方法的注释，并确保 UserController 中不再定义 /login 接口。
+ */
 @RestController
 @RequestMapping("/api")
 public class AuthController {
@@ -20,57 +27,27 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
-    /**
-     * 登录接口
-     */
-    @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
-
-        // 1. 参数校验
-        if (request == null ||
-                Objects.isNull(request.getUsername()) ||
-                Objects.isNull(request.getPassword())) {
-            return ResponseEntity.badRequest()
-                    .body(createErrorResponse("用户名和密码不能为空"));
-        }
-
-        try {
-            // 2. 调用服务层登录
-            User user = userService.login(request.getUsername(), request.getPassword()); // ← 传入明文
-            // 3. 生成 token
-            String token = JwtUtil.generateToken(user.getUsername());
-
-            // 4. 构造成功响应
-            Map<String, Object> result = new HashMap<>();
-            result.put("token", token);
-            result.put("name", user.getName());
-            return ResponseEntity.ok(result);
-
-        } catch (RuntimeException e) {
-            // 5. 捕获业务异常（如用户不存在、密码错误）
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(createErrorResponse(e.getMessage()));
-        }
-    }
-
-    // 辅助方法：构造错误响应
     private Map<String, Object> createErrorResponse(String message) {
         Map<String, Object> error = new HashMap<>();
         error.put("error", message);
         return error;
     }
 
-    // 内部 DTO 类（也可单独建文件）
+    @Setter
+    @Getter
     public static class LoginRequest {
         private String username;
         private String password;
-
-        // Getters and Setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
     }
 
+    /**
+     * 💡 扩展建议：
+     * 1. 登出接口 (虽然 JWT 通常是无状态的，但可以配合黑名单机制)
+     *    @PostMapping("/logout")
+     *    public ResponseEntity<Void> logout(...) { ... }
 
+     * 2. 刷新 Token 接口 (当 Token 快过期时，用 Refresh Token 换取新 Access Token)
+     *    @PostMapping("/refresh")
+     *    public ResponseEntity<Map<String, Object>> refresh(...) { ... }
+     *    */
 }

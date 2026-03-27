@@ -1,7 +1,7 @@
 package cn.edu.hdu.controller;
 
-import cn.edu.hdu.dto.ProductDTO; // 1. 导入移出来的 DTO
-import cn.edu.hdu.service.ProductService; // 2. 导入 Service
+import cn.edu.hdu.pojo.Product;
+import cn.edu.hdu.service.ProductService;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/products")
@@ -29,7 +33,7 @@ public class PlanRecordController {
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads";
 
     @PostMapping("/add")
-    public ApiResponse<ProductDTO> addProduct(
+    public ApiResponse<Product> addProduct(
             @RequestParam("image") MultipartFile file,
             @RequestParam("name") String name,
             @RequestParam("price") BigDecimal price,
@@ -59,7 +63,7 @@ public class PlanRecordController {
             String imageUrl = "/uploads/" + newFilename;
 
             // 构造 DTO
-            ProductDTO product = new ProductDTO();
+            Product product = new Product();
             product.setName(name.trim());
             product.setPrice(price);
             product.setCategory(category);
@@ -68,10 +72,27 @@ public class PlanRecordController {
             product.setDifficulty(difficulty);
             product.setStock(stock);
             product.setImageUrl(imageUrl);
-            product.setPlantingMonths(plantingMonths);
-            product.setSuitableRegions(suitableRegions);
             product.setCreateTime(LocalDateTime.now());
+            if (plantingMonths != null && !plantingMonths.isEmpty()) {
+                // 去掉 "月" 字
+                List<String> monthsList = Arrays.stream(plantingMonths.split(","))
+                        .map(m -> m.replace("月", "")) // 去掉 "月" 字
+                        .collect(Collectors.toList());
+                product.setPlantingMonths(monthsList);
+            } else {
+                product.setPlantingMonths(new ArrayList<>());
+            }
 
+            if (suitableRegions != null && !suitableRegions.isEmpty()) {
+                List<String> regionsList = Arrays.stream(suitableRegions.split(","))
+                        .map(String::trim)
+                        .collect(Collectors.toList());
+                product.setSuitableRegions(regionsList);
+            } else {
+                product.setSuitableRegions(new ArrayList<>());
+            }
+
+            product.setCreateTime(LocalDateTime.now());
             // ============================================================
             // 使用注入的对象调用方法
             // ============================================================

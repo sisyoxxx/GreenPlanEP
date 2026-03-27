@@ -16,8 +16,8 @@
         <result column="image_url" property="imageUrl" />
         <result column="short_description" property="shortDescription" />
         <result column="detail_description" property="detailDescription" />
-        <result column="planting_months" property="plantingMonths" />
-        <result column="suitable_regions" property="suitableRegions" />
+        <result column="planting_months" property="plantingMonths" typeHandler="cn.edu.hdu.handler.AbstractListTypeHandler"/>
+        <result column="suitable_regions" property="suitableRegions" typeHandler="cn.edu.hdu.handler.AbstractListTypeHandler"/>
         <result column="create_time" property="createTime" />
     </resultMap>
 
@@ -47,11 +47,11 @@
             <!-- 3. 种植月份筛选 -->
             <!-- 逻辑：如果前端传了 "3月"，Service层会转为 "3"，这里用 FIND_IN_SET 匹配 "3,4,5" 中的 "3" -->
             <if test="month != null and month != ''">
-                AND FIND_IN_SET(#{month}, planting_months)
+                AND planting_months LIKE CONCAT('%', #{month}, '%')
             </if>
             <!-- 4. 种植地区筛选 -->
             <if test="region != null and region != ''">
-                AND FIND_IN_SET(#{region}, suitable_regions)
+                AND suitable_regions LIKE CONCAT('%', #{region},'%')
             </if>
         </where>
         ORDER BY id DESC

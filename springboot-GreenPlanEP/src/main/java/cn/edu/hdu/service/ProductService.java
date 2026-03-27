@@ -1,7 +1,7 @@
 package cn.edu.hdu.service;
 
-import cn.edu.hdu.dto.ProductDTO;
 import cn.edu.hdu.dto.ProductResponse;
+import cn.edu.hdu.pojo.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +19,7 @@ public abstract class ProductService {
      * 保存商品到数据库
      */
     @Transactional
-    public ProductDTO saveProduct(ProductDTO product) {
+    public Product saveProduct(Product product) {
         if (product == null || product.getName() == null) {
             throw new IllegalArgumentException("商品数据不能为空");
         }

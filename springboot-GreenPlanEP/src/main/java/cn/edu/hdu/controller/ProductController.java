@@ -27,15 +27,13 @@ public class ProductController {
             @RequestParam(required = false, defaultValue = "") String region,
             @RequestParam(defaultValue = "default") String sortBy
     ) {
-        String cleanMonth = "";
-        if (month != null && !month.isEmpty() && month.contains("月")) {
-            cleanMonth = month.replace("月", "");
-        } else if (month != null && !month.isEmpty()) {
-            // 防止前端直接传了数字 "3"
-            cleanMonth = month;
-        }
+        // 清洗月份：去掉“月”字，如“4月” -> “4”
+        String cleanMonth = month != null && month.contains("月") ? month.replace("月", "") : month;
+
+        // 清洗地区：去掉空格，如“ 华北 ” -> “华北”
+        String cleanRegion = region != null ? region.trim() : region;
 
         // 调用 Service 层
-        return productService.getProducts(page, pageSize, keyword, category, cleanMonth, region, sortBy);
+        return productService.getProducts(page, pageSize, keyword, category, cleanMonth, cleanRegion, sortBy);
     }
 }

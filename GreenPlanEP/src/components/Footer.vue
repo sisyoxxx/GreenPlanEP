@@ -19,7 +19,7 @@
     </footer>
   </template>
   
-  <style scoped>
+<style scoped>
   .site-footer {
     background: #2d3436;
     color: #bdc3c7;

@@ -173,7 +173,7 @@
   .header-tools {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 0px;
   }
   
   .tool-item {
