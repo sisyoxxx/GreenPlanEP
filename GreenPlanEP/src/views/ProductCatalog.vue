@@ -231,19 +231,8 @@
       
       console.log('📥 后端返回数据:', res)
   
-      // 兼容处理：判断是否有 code 字段 (取决于 request 拦截器配置)
-      // 如果拦截器已经统一处理了 code!=200 的报错，这里 res 就是纯净数据
-      // 如果拦截器只负责网络错误，这里需要手动判断业务错误
-      if (res && typeof res.code !== 'undefined') {
-        if (res.code !== 200 && res.code !== '200') {
-          throw new Error(res.message || '后端返回错误')
-        }
-        // 有 code 且成功，通常数据在 data 字段
-        handleDataStructure(res.data || res) 
-      } else {
-        // 没有 code 字段，直接当作数据源处理
-        handleDataStructure(res)
-      }
+      // request 拦截器已统一返回 payload，直接按数据结构处理
+      handleDataStructure(res)
   
     } catch (error) {
       console.error('❌ 获取数据失败:', error)

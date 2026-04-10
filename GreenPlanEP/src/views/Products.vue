@@ -58,10 +58,17 @@ const fetchProducts = async () => {
     // 调用 API，传入分页参数 (如果后端支持)
     const res = await getProductList({ page: 1, pageSize: 20 })
     
-    // 注意：由于我们在 request.js 拦截器中已经处理了 success 判断
-    // 这里的 res 就是后端返回的 data 部分 (即 List<ProductDTO>)
-    // 如果拦截器返回的是整个对象，请用 res.data
-    products.value = res.data || res 
+    // 兼容常见返回结构：数组 / { list } / { records }
+    if (Array.isArray(res)) {
+      products.value = res
+    } else if (res?.list) {
+      products.value = res.list
+    } else if (res?.records) {
+      products.value = res.records
+    } else {
+      products.value = []
+      console.warn('商品列表数据结构异常:', res)
+    }
     
   } catch (error) {
     console.error('获取商品失败:', error)

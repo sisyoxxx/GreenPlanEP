@@ -21,7 +21,7 @@ export const useProductStore = defineStore('product', () => {
   })
 
   // ===== Actions (动作) =====
-  
+
   /**
    * 获取商品列表
    * @param {Object} params 覆盖默认筛选条件的参数
@@ -40,20 +40,13 @@ export const useProductStore = defineStore('product', () => {
       // 3. 调用 API (参数清洗在 api/product.js 中自动完成)
       const res = await getProductList(queryParams)
 
-      // 4. 统一处理数据结构 (兼容多种后端返回格式)
+
+
+      // request 拦截器已统一返回 payload
+      const rawData = res
+      //  解析列表数据
       let dataList = []
       let totalCount = 0
-
-      // 假设 request 拦截器已解包 data，如果没解包，可能需要 res.data
-      let rawData = res
-      
-      // 如果后端返回包含 code 字段，提取 data
-      if (rawData && typeof rawData.code !== 'undefined') {
-        if (rawData.code !== 200 && rawData.code !== '200') {
-          throw new Error(rawData.message || '业务错误')
-        }
-        rawData = rawData.data || rawData
-      }
 
       // 解析列表和总数
       if (Array.isArray(rawData)) {
@@ -65,6 +58,8 @@ export const useProductStore = defineStore('product', () => {
       } else if (rawData && rawData.records) {
         dataList = rawData.records
         totalCount = rawData.total || 0
+      }else {
+        console.warn('⚠️ 未知数据结构:', rawData)
       }
 
       // 5. 更新 State
@@ -94,13 +89,7 @@ export const useProductStore = defineStore('product', () => {
     loading.value = true
     try {
       const res = await getProductDetail(id)
-      // 同样处理可能的 code 包裹
-      let data = res
-      if (res && typeof res.code !== 'undefined') {
-        if (res.code !== 200) throw new Error(res.message)
-        data = res.data || res
-      }
-      return data
+      return res
     } catch (err) {
       error.value = err.message
       throw err

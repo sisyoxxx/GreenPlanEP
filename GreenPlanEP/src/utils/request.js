@@ -11,6 +11,10 @@ const request = axios.create({
 request.interceptors.request.use(
   config => {
     // 例如：config.headers.Authorization = 'Bearer ' + token
+    if (config.method === 'post' || config.method === 'POST') {
+      // 重要：确保后端能正确解析 JSON
+      config.headers['Content-Type'] = 'application/json'
+    }
     return config
   },
   error => {
@@ -18,27 +22,15 @@ request.interceptors.request.use(
   }
 )
 
-// 响应拦截器 (处理后端统一返回格式 ApiResponse)
-  request.interceptors.response.use(
-    response => {
-      const res = response.data
-
-      // 如果后端返回的是 { code: xxx, message: xxx, data: xxx } 格式
-      if (typeof res.code !== 'undefined') {
-        if (res.code === 200 || res.code === '200') {
-          return res.data // 只返回 data 部分，简化前端调用
-        } else {
-          // 业务错误，直接抛出，让前端 catch 捕获
-          return Promise.reject(new Error(res.message || 'Request error'))
-        }
-      }
-
-      // 如果没有 code 字段，直接返回整个 response.data
-      return res
-    },
-    error => {
-      return Promise.reject(error)
-    }
-  )
+// 响应拦截器：统一只返回业务数据 response.data
+request.interceptors.response.use(
+  (response) => {
+    return response.data
+  },
+  (error) => {
+    // 只有网络错误（如 500, 404, 断网）才会进入这里
+    return Promise.reject(error)
+  }
+)
 
 export default request

@@ -93,7 +93,7 @@
             <span class="error-msg" v-if="errors.regPassword">{{ errors.regPassword }}</span>
           </div>
 
-          <!-- 确认密码 (新增) -->
+          <!-- 确认密码  -->
           <div class="form-group">
             <div class="input-wrapper">
               <i class="fas fa-check-circle input-icon"></i>
@@ -143,12 +143,12 @@
   
 <script setup>
   import { ref, reactive } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { useRouter, useRoute } from 'vue-router';
   import '@fortawesome/fontawesome-free/css/all.min.css';
   import { useUserStore } from '@/api/user';
-  import axios from 'axios';
   
   const router = useRouter();
+  const route = useRoute();
   const userStore = useUserStore(); // ← 使用 Pinia store
   
 
@@ -250,32 +250,35 @@
 
   // ========================== 业务逻辑 ======================
   // 登录处理
+  // 登录处理
   const handleLogin = async () => {
     const isUserValid = validateUsername();
     const isPassValid = validatePassword();
-    
+
     if (!isUserValid || !isPassValid) return;
-  
+
     isLoading.value = true;
-  
+
     try {
-      // ✅ 调用 Pinia store 的 login 方法（已封装 axios + token 存储）
-      await userStore.login({
+      const res = await userStore.login({
         username: loginForm.username,
         password: loginForm.password
       });
-      alert(`登录成功！欢迎 ${userStore.currentUser?.name || loginForm.username}`);
-      router.replace('/user');
-    } 
-    catch (error) {
+
+      if (res.code === 200) {
+        alert(`登录成功！欢迎 ${userStore.currentUser?.name || userStore.currentUser?.nickname || userStore.currentUser?.username || loginForm.username}`);
+        const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
+        router.replace(redirect);
+      } else {
+        alert('登录失败：' + (res.msg || '未知错误'));
+      }
+    } catch (error) {
       console.error('登录失败:', error);
-      alert('登录失败：' + (error.response?.data?.error || '用户名或密码错误'));
-    } 
-    finally {
+      alert('登录失败：网络连接失败，请检查网络');
+    } finally {
       isLoading.value = false;
     }
   };
-
   // 注册处理
   const handleRegister = async () => {
     // 1. 执行所有注册字段的验证
@@ -296,39 +299,26 @@
     isLoading.value = true;
 
     try {
-      // 2. 调用后端注册接口
-      // 假设后端接口为 /api/auth/register
-      const response = await axios.post('http://localhost:8080/api/auth/register', {
+      const res = await userStore.register({
         username: registerForm.username,
-        password: registerForm.password,
-        confirmPassword: registerForm.confirmPassword,
-        // 如果有邮箱或手机，也可以在这里添加
+        password: registerForm.password
       });
 
-      // 3. 处理成功响应
-      if (response.data.code === 200 || response.data.success) {
-        alert('注册成功！即将跳转到登录页面...');
-        
-        // 4. 自动切换回登录态，并预填用户名，提升体验
+      if (res.code === 200) {
+        alert('注册成功！跳转登录...');
         switchTab('login');
         loginForm.username = registerForm.username;
-        loginForm.password = ''; // 清空密码
-        
-        // 可选：清空注册表单
+
         registerForm.username = '';
         registerForm.password = '';
         registerForm.confirmPassword = '';
         registerForm.agreed = false;
       } else {
-        // 后端业务错误 (如用户名已存在)
-        alert('注册失败：' + (response.data.message || '未知错误'));
+        alert('注册失败：' + (res.msg || '未知错误'));
       }
-
     } catch (error) {
       console.error('注册异常:', error);
-      // 网络错误或服务器崩溃
-      const errMsg = error.response?.data?.message || '网络请求失败，请稍后重试';
-      alert('注册失败：' + errMsg);
+      alert('注册失败：网络请求失败，请稍后重试');
     } finally {
       isLoading.value = false;
     }

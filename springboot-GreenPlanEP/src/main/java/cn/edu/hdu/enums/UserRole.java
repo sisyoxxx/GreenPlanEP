@@ -1,7 +1,20 @@
 package cn.edu.hdu.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
+
 public enum UserRole {
-    ADMIN,      // 管理员
-    BUYER,      // 普通买家
-    STOCK_ADMIN // 库存管理员
+    ADMIN("admin"),
+    BUYER("buyer"),
+    STOCK_ADMIN("stock_admin");
+
+    @EnumValue
+    private final String value;
+
+    UserRole(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
 }

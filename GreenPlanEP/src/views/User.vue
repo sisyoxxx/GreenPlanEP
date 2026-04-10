@@ -231,7 +231,7 @@
   const loadUserInfo = async () => {
     try {
       const res = await userStore.getUserInfo()
-      Object.assign(userInfo, res.data)
+      Object.assign(userInfo, res || {})
     } catch (error) {
       console.error('加载用户信息失败:', error)
     }
@@ -241,7 +241,7 @@
   const loadOrders = async () => {
     try {
       const res = await userStore.getOrders({ status: orderTab.value })
-      orderList.value = res.data
+      orderList.value = Array.isArray(res) ? res : (res?.list || res?.records || [])
     } catch (error) {
       console.error('加载订单失败:', error)
     }
@@ -251,7 +251,7 @@
   const loadRecords = async () => {
     try {
       const res = await userStore.getPlantRecords()
-      plantRecords.value = res.data
+      plantRecords.value = Array.isArray(res) ? res : (res?.list || res?.records || [])
     } catch (error) {
       console.error('加载记录失败:', error)
     }
@@ -261,7 +261,7 @@
   const loadAddresses = async () => {
     try {
       const res = await userStore.getAddresses()
-      addressList.value = res.data
+      addressList.value = Array.isArray(res) ? res : (res?.list || res?.records || [])
     } catch (error) {
       console.error('加载地址失败:', error)
     }

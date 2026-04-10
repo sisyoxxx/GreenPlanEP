@@ -22,7 +22,7 @@
         <!-- 右侧工具栏 (登录) -->
         <div class="header-tools" @click="handleUserClick">
             <div class="nav-link"><i class="fas fa-user"></i></div>
-            <span v-if="isLoggedIn" class="username-tooltip">{{ currentUser.name }}</span>
+            <span v-if="isLoggedIn" class="username-tooltip">{{ currentUser.name || currentUser.nickname || currentUser.username }}</span>
         </div>
       </div>
     </header>
@@ -75,6 +75,7 @@
     isLoggedIn.value = false;
     currentUser.value = null;
     localStorage.removeItem('greenPlan_user');
+    localStorage.removeItem('greenPlan_token');
     router.push('/login');
   };
 

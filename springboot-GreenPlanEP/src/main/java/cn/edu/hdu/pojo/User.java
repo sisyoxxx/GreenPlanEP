@@ -1,10 +1,7 @@
 package cn.edu.hdu.pojo;
 
 import cn.edu.hdu.enums.UserRole;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName; // 关键注解：指定表名
-import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -14,12 +11,14 @@ public class User {
 
     @TableId(type = IdType.AUTO) // 【重要】指定主键策略为自增
     private Long id;
-    @TableField
+    @TableField("username")
     private String username;
-    @TableField
+    @TableField("password")
     private String password;
-    @TableField
+
+    @TableField("role")
     private UserRole role;
-    @TableField("fill = FieldFill.INSERT")
+
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }

@@ -5,7 +5,7 @@
 <mapper namespace="cn.edu.hdu.mapper.UserMapper">
 
     <select id="findByUsername" resultType="cn.edu.hdu.pojo.User">
-        SELECT id, username, password, name
+        SELECT id, username, password, role, created_at
         FROM users
         WHERE username = #{username}
     </select>

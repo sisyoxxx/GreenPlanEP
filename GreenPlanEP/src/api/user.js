@@ -1,217 +1,99 @@
-// src/stores/user.js
+// src/stores/useUserStore.js (或 user.js)
+
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import axios from 'axios'; // ← 引入 axios
+import { useStorage } from '@/composables/useStorage'; // 引入你的持久化工具
+import request from '@/utils/request'; // 假设你的 request.js 在 utils 文件夹
 
-// 创建 axios 实例（可复用）
-const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // 后端地址
-  timeout: 5000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// 请求拦截器：自动添加 JWT token
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('greenPlan_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, error => {
-  return Promise.reject(error);
-});
-
-// 响应拦截器：统一处理错误
-api.interceptors.response.use(
-  response => response,
-  error => {
-    if (error.response?.status === 401) {
-      // token 失效，清除本地数据并跳转登录
-      localStorage.removeItem('greenPlan_token');
-      localStorage.removeItem('greenPlan_user');
-      // 这里可以触发路由跳转（需配合 router）
-      // router.push('/login');
-    }
-    return Promise.reject(error);
-  }
-);
-
+// 1. 定义并导出 Store
 export const useUserStore = defineStore('user', () => {
-  const currentUser = ref(null);
+  // 使用 useStorage 自动同步到 localStorage
+  const currentUser = useStorage('greenPlan_user', null);
+  const token = useStorage('greenPlan_token', '');
 
-  // 初始化：从 localStorage 恢复用户和 token
-  const initUser = () => {
-    const storedUser = localStorage.getItem('greenPlan_user');
-    if (storedUser) {
-      currentUser.value = JSON.parse(storedUser);
-    }
-  };
-  initUser();
-
-  // --- 真实 API 调用（替换 mock）---
-
-  // 1. 获取用户信息
-  const getUserInfo = async () => {
+  // 2. 登录方法 (重点修改部分)
+  // ✅ 修改思路：
+  // - 不要让 Axios 拦截器直接 reject 业务错误 (401/402)。
+  // - 让 login 方法总是返回一个 { code, msg, data } 格式的对象。
+  // - 无论成功还是失败，都在 Store 层处理数据结构，保证组件层不会报错。
+  const login = async ({ username, password }) => {
     try {
-      const res = await api.get('/user/info'); // ← 调用真实接口
-      const userInfo = res.data;
-      
-      // 更新本地存储
-      currentUser.value = userInfo;
-      localStorage.setItem('greenPlan_user', JSON.stringify(userInfo));
-      
-      return { data: userInfo };
+      const response = await request.post('/api/login', {
+        username,
+        password
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // ✅ 关键点1：假设拦截器已经放行，我们拿到的是标准数据
+      const { code, msg, data } = response;
+
+      if (code === 200) {
+        // 登录成功逻辑
+        const userToken = data?.token || '';
+        const userDetails = data?.user || null;
+        currentUser.value = userDetails;
+        token.value = userToken;
+
+        // 返回成功结果给组件
+        return { code, msg, data };
+      } else {
+        // ✅ 关键点2：业务失败，不抛出 Error，而是返回错误信息对象
+        // 这样组件的 try...catch 不会被触发，避免进入错误处理分支导致逻辑混乱
+        return { code, msg, data: null };
+      }
+
     } catch (error) {
-      console.error('获取用户信息失败:', error);
-      throw error;
+      // ✅ 关键点3：网络错误处理
+      // 如果是网络请求失败（如超时、断网），Axios 会进入这里
+      // 我们构造一个标准的错误格式返回，防止组件层报错
+      console.error('登录网络错误:', error);
+
+      return {
+        code: 500,
+        msg: error.message || '网络请求失败，请检查网络',
+        data: null
+      };
     }
   };
 
-  // 2. 获取订单列表
-  const getOrders = async ({ status = 'all' }) => {
+  // 3. 注册方法 (保持不变，仅做微调以符合统一风格)
+  const register = async ({ username, password, confirmPassword }) => {
     try {
-      const res = await api.get(`/orders?status=${status}`);
-      return { data: res.data };
+      const response = await request.post('/api/register', { username, password });
+
+      // 假设 register 的拦截器逻辑和 login 一样
+      const { code, msg, data } = response;
+
+      if (code === 200) {
+        return { code, msg, data };
+      } else {
+        // 注册失败，返回错误信息
+        return { code, msg, data: null };
+      }
+
     } catch (error) {
-      console.error('获取订单失败:', error);
-      throw error;
+      console.error('注册网络错误:', error);
+      return {
+        code: 500,
+        msg: error.message || '注册网络错误',
+        data: null
+      };
     }
   };
 
-  // 3. 获取种植记录
-  const getPlantRecords = async () => {
-    try {
-      const res = await api.get('/records/plant');
-      return { data: res.data };
-    } catch (error) {
-      console.error('获取种植记录失败:', error);
-      throw error;
-    }
-  };
-
-  // 4. 获取地址列表
-  const getAddresses = async () => {
-    try {
-      const res = await api.get('/addresses');
-      return { data: res.data };
-    } catch (error) {
-      console.error('获取地址失败:', error);
-      throw error;
-    }
-  };
-
-  // 5. 更新用户信息
-  const updateUserInfo = async (info) => {
-    try {
-      const res = await api.put('/user/info', info);
-      const updatedUser = res.data;
-      
-      currentUser.value = updatedUser;
-      localStorage.setItem('greenPlan_user', JSON.stringify(updatedUser));
-      
-      return { success: true };
-    } catch (error) {
-      console.error('更新用户信息失败:', error);
-      throw error;
-    }
-  };
-
-  // 6. 添加种植记录
-  const addPlantRecord = async (record) => {
-    try {
-      await api.post('/records/plant', record);
-      return { success: true };
-    } catch (error) {
-      console.error('添加种植记录失败:', error);
-      throw error;
-    }
-  };
-
-  // 7. 删除种植记录
-  const deletePlantRecord = async (id) => {
-    try {
-      await api.delete(`/records/plant/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error('删除种植记录失败:', error);
-      throw error;
-    }
-  };
-
-  // 8. 设置默认地址
-  const setDefaultAddress = async (id) => {
-    try {
-      await api.patch(`/addresses/${id}/default`);
-      return { success: true };
-    } catch (error) {
-      console.error('设置默认地址失败:', error);
-      throw error;
-    }
-  };
-
-  // 9. 删除地址
-  const deleteAddress = async (id) => {
-    try {
-      await api.delete(`/addresses/${id}`);
-      return { success: true };
-    } catch (error) {
-      console.error('删除地址失败:', error);
-      throw error;
-    }
-  };
-
-  // 10. 编辑地址
-  const editAddress = async (address) => {
-    try {
-      await api.put(`/addresses/${address.id}`, address);
-      return { success: true };
-    } catch (error) {
-      console.error('编辑地址失败:', error);
-      throw error;
-    }
-  };
-
-  // 🔑 新增：登录方法（用于保存 token 和用户）
-  const login = async (credentials) => {
-    try {
-      const res = await axios.post('http://localhost:8080/api/login', credentials); 
-      const { token, name, username } = res.data;
-
-      // 保存 token 和用户信息
-      localStorage.setItem('greenPlan_token', token);
-      const user = { username, name };
-      localStorage.setItem('greenPlan_user', JSON.stringify(user));
-      currentUser.value = user;
-
-      return { success: true, token, user };
-    } catch (error) {
-      console.error('登录失败:', error);
-      throw error;
-    }
-  };
-
-  // 🔑 新增：登出
+  // 4. 登出方法 (保持不变)
   const logout = () => {
-    localStorage.removeItem('greenPlan_token');
-    localStorage.removeItem('greenPlan_user');
     currentUser.value = null;
+    token.value = '';
   };
 
   return {
     currentUser,
-    getUserInfo,
-    getOrders,
-    getPlantRecords,
-    getAddresses,
-    updateUserInfo,
-    addPlantRecord,
-    deletePlantRecord,
-    setDefaultAddress,
-    deleteAddress,
-    editAddress,
-    login,      // ← 暴露登录
-    logout      // ← 暴露登出
+    token,
+    login,
+    register,
+    logout
   };
 });

@@ -1,56 +1,67 @@
-// src/main/java/cn/edu/hdu/controller/UserController.java
 package cn.edu.hdu.controller;
 
+import cn.edu.hdu.common.Result;
 import cn.edu.hdu.pojo.User;
 import cn.edu.hdu.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class UserController {
 
-    @Autowired
-    private UserService userService; // 注入的是接口
+    @Resource
+    private UserService userService;
 
-    // 登录接口
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> loginData) {
-        Map<String, Object> result = new HashMap<>();
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> map) {
+        String username = map.get("username");
+        String password = map.get("password");
+
         try {
-            String username = loginData.get("username");
-            String password = loginData.get("password");
-
             User user = userService.login(username, password);
-
-            result.put("code", 200);
-            result.put("msg", "登录成功");
-            result.put("data", user);
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", UUID.randomUUID().toString());
+            data.put("user", safeUser(user));
+            return Result.success(data);
         } catch (RuntimeException e) {
-            result.put("code", 400);
-            result.put("msg", e.getMessage());
+            e.printStackTrace();
+            String message = e.getMessage();
+            if (message == null || message.isBlank()) {
+                message = "登录失败，请稍后重试";
+            }
+            return Result.custom(400, message);
         }
-        return result;
     }
 
-    // 注册接口
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody User user) {
-        Map<String, Object> result = new HashMap<>();
+    public Result<Map<String, Object>> register(@RequestBody User user) {
         try {
             User newUser = userService.register(user);
-
-            result.put("code", 200);
-            result.put("msg", "注册成功");
-            result.put("data", newUser);
+            Map<String, Object> data = new HashMap<>();
+            data.put("user", safeUser(newUser));
+            return Result.success(data);
         } catch (RuntimeException e) {
-            result.put("code", 400);
-            result.put("msg", e.getMessage());
+            e.printStackTrace();
+            String message = e.getMessage();
+            if (message == null || message.isBlank()) {
+                message = "注册失败，请稍后重试";
+            }
+            return Result.custom(400, message);
         }
-        return result;
+    }
+
+    private Map<String, Object> safeUser(User user) {
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getId());
+        userData.put("username", user.getUsername());
+        userData.put("role", user.getRole());
+        userData.put("createdAt", user.getCreatedAt());
+        return userData;
     }
 }
